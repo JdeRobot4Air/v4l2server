@@ -26,3 +26,11 @@
 *.exe
 *.out
 *.app
+
+# For this project
+CMakeFiles/
+.cproject
+.project
+Makefile
+cmake_install.cmake
+
