@@ -15,7 +15,7 @@ namespace v4l2 {
 class Camera {
  private:
   /* Camera device name */
-  const char *device_;
+  std::string device_;
   /* Camera file descriptor */
   int camera_fd_;
   /* Image width */
@@ -28,7 +28,8 @@ class Camera {
   bool active_;
 
  public:
-  Camera(const char *device, int weight, int height, int fps = 10);
+  Camera(std::string device, int width, int height, int fps);
+  Camera(std::string device, int width, int height);
   void Start() throw (std::string);
   void Stop();
   bool is_active();
