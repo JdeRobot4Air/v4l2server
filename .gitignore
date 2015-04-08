@@ -38,3 +38,7 @@ CMakeCache.txt
 *.so
 v4l2server
 *_bk*
+Thumbs.db
+*.swp
+*~
+
