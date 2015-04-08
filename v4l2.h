@@ -14,17 +14,17 @@ namespace v4l2 {
 
 class Camera {
  private:
-  /* Camera device name */
+  /** Camera device name */
   std::string device_;
-  /* Camera file descriptor */
+  /** Camera file descriptor */
   int camera_fd_;
-  /* Image width */
+  /** Image width */
   int width_;
-  /* Image height */
+  /** Image height */
   int height_;
-  /* Frames per second requested */
+  /** Frames per second requested */
   int fps_;
-  /* Camera active (capturing frames) */
+  /** Camera active (device opened and configured) */
   bool active_;
 
  public:
