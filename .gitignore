@@ -41,4 +41,5 @@ v4l2server
 Thumbs.db
 *.swp
 *~
+Doxyfile
 

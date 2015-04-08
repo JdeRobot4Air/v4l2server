@@ -17,10 +17,27 @@
 
 namespace v4l2 {
 
+/**
+ * Constructor without frame rate
+ * This constructor will create a instance of camera with a default frame rate
+ * of 10 fps
+ * @param device camera device to be opened
+ * @param width image width
+ * @param height image height
+ */
 Camera::Camera(std::string device, int width, int height) {
   Camera(device, width, height, 10);
 }
 
+/**
+ * Constructor with frame rate
+ * This constructor will create a instance of camera with requested image size
+ * and frame rate
+ * @param device camera device to be opened
+ * @param width image width
+ * @param height image height
+ * @param fps requested frame rate in frames per second
+ */
 Camera::Camera(std::string device, int width, int height, int fps) {
   /* Camera not active yet */
   active_ = false;
@@ -32,7 +49,10 @@ Camera::Camera(std::string device, int width, int height, int fps) {
   camera_fd_ = -1;
 }
 
-void Camera::Start() throw (std::string) {
+/**
+ * Open camera device and throws an exception in case of error
+ */
+void Camera::Open() throw (std::string) {
   struct stat st;
   /* Get stat data from device file */
   if (stat(device_.c_str(), &st) == -1) {
@@ -53,10 +73,12 @@ void Camera::Start() throw (std::string) {
     output_message << "Can't open " << device_ << ": [" << errno << "] "
                    << strerror(errno);
   }
-  active_ = true;
 }
 
-void Camera::Stop() {
+/**
+ * Close camera device
+ */
+void Camera::Close() {
   active_ = false;
   /* If camera file descriptor is opened we will close it on stop */
   if (camera_fd_ != -1) {
@@ -65,15 +87,19 @@ void Camera::Stop() {
   }
 }
 
+/**
+ * Get camera status
+ * @return the current status of camera device
+ */
 bool Camera::is_active() {
-  return active_;
+  return active_ && (camera_fd_ != -1);
 }
 
+/**
+ * Free resources, stop capturing and close camera device
+ */
 Camera::~Camera() {
-  /* Stop and close camera, free buffers, ect */
-  if (active_ == true) {
-    Stop();
-  }
+  Close();
 }
 
 }
