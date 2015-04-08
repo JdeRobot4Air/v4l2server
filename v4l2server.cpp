@@ -12,11 +12,11 @@
 int main(int argc, char** argv) {
   v4l2::Camera camera = v4l2::Camera("/dev/video1", 320, 240, 10);
   try {
-    camera.Start();
+    camera.Open();
     std::cout << "Get ready! -> " << camera.is_active() << std::endl;
   } catch (std::string& e) {
     std::cout << "ERROR: " << e << std::endl;
   }
-  camera.Stop();
+  camera.Close();
   return 0;
 }

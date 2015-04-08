@@ -30,7 +30,9 @@ class Camera {
  public:
   Camera(std::string device, int width, int height, int fps);
   Camera(std::string device, int width, int height);
-  void Start() throw (std::string);
+  void Open() throw (std::string);
+  void Close();
+  void Start();
   void Stop();
   bool is_active();
   ~Camera();
