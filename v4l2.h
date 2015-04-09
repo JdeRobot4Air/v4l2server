@@ -12,6 +12,7 @@
 
 namespace v4l2 {
 
+/** Camera control class */
 class Camera {
  private:
   /** Camera device name */
@@ -26,14 +27,22 @@ class Camera {
   int fps_;
   /** Camera active (device opened and configured) */
   bool active_;
+  /** Memory mapped image buffers */
+  struct buffer {
+    void* mem;
+    size_t size;
+  };
+  buffer* buffers_;
+  int num_buffers_;
 
  public:
+  int xioctl(int request, void* argument);
   Camera(std::string device, int width, int height, int fps);
   Camera(std::string device, int width, int height);
   void Open() throw (std::string);
   void Close();
-  void Start();
-  void Stop();
+  void Start() throw (std::string);
+  void Stop() throw (std::string);
   bool is_active();
   ~Camera();
 };
