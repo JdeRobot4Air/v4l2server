@@ -16,10 +16,58 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <iostream>
+#include <string>
 
 #include "v4l2.h"
 
 namespace v4l2 {
+
+std::string FormatInt2String(int format) {
+  std::string output;
+  output += (char)(format & 0xff);
+  format >>= 8;
+  output += (char)(format & 0xff);
+  format >>= 8;
+  output += (char)(format & 0xff);
+  format >>= 8;
+  output += (char)(format & 0xff);
+  return output;
+}
+
+int FormatString2Int(std::string format) {
+  return V4L2_PIX_FMT_RGB24;
+}
+
+int FormatString2Int2(std::string format) {
+  int output;
+  if (format.size() != 4) {
+    return 0;
+  }
+  output = format.at(0);
+  output += format.at(1) << 8;
+  output += format.at(2) << 16;
+  output += format.at(3) << 24;
+  return output;
+}
+
+void Camera::getFormat(Format *format) throw (std::string) {
+  /* Set image format */
+  struct v4l2_format image_format;
+  memset(&image_format, 1, sizeof(image_format));
+  image_format.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+  image_format.fmt.pix.width = width_;
+  image_format.fmt.pix.height = height_;
+  image_format.fmt.pix.pixelformat = V4L2_PIX_FMT_YUYV;  //V4L2_PIX_FMT_RGB24;  //V4L2_PIX_FMT_YUYV;
+  image_format.fmt.pix.field = V4L2_FIELD_NONE;
+  if (xioctl(VIDIOC_S_FMT, &image_format) == -1) {
+    throw std::string("Error in VIDIOC_S_FMT");
+  }
+  if (image_format.fmt.pix.pixelformat != V4L2_PIX_FMT_YUYV) {
+    throw std::string("Camera doesn't support requested mode");
+  }
+
+}
 
 /**
  * Call to ioctl (10 tries in case of error) using camera file descriptor
@@ -237,7 +285,7 @@ void Camera::Stop() throw (std::string) {
 }
 
 /** Uses poll to wait until next frame is ready */
-Buffer* Camera::waitFrame(int milliseconds) throw (std::string) {
+Buffer* Camera::WaitFrame(int milliseconds) throw (std::string) {
   std::ostringstream output_message;
   /* Check if previous frame was requeued before dequeue next one */
   if (current_buffer_.length != 0) {
@@ -284,7 +332,7 @@ Buffer* Camera::waitFrame(int milliseconds) throw (std::string) {
   return NULL;
 }
 
-void Camera::freeFrame(Buffer* frame) throw (std::string) {
+void Camera::FreeFrame(Buffer* frame) throw (std::string) {
   //free(frame);
   if (xioctl(VIDIOC_QBUF, &current_buffer_) == -1) {
     throw std::string("Error in VIDIOC_QBUF");
@@ -292,7 +340,7 @@ void Camera::freeFrame(Buffer* frame) throw (std::string) {
   current_buffer_.length = 0;
 }
 
-Buffer* Camera::YUYVtoRGB24(Buffer* frame) {
+Buffer* Camera::YuyvToRgb24(Buffer* frame) {
   Buffer* output;
   unsigned char* rgb_image = new unsigned char[width_ * height_ * 3];
   unsigned char* yuyv_image = (unsigned char*) frame->mem;

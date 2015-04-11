@@ -29,21 +29,17 @@ int main(int argc, char** argv) {
     camera.Start();
     std::cout << "Camera started! -> " << camera.is_active() << std::endl;
     for (int i = 0; i < 20; i++) {
-      buffer = camera.waitFrame(500000);
+      buffer = camera.WaitFrame(500000);
       if (buffer == NULL) {
         std::cout << "NULL" << std::endl;
         return 1;
       }
+      std::cout << v4l2::FormatString2Int("YUYV") << " - " << v4l2::FormatString2Int2("YUYV") << " - " << v4l2::FormatInt2String(859981650) << std::endl;
       std::cout << "Received " << buffer->size << " bytes" << std::endl;
       std::ofstream outfile("test.raw", std::ofstream::binary);
       outfile.write((char*) buffer->mem, buffer->size);
       outfile.close();
-      buffer2 = camera.YUYVtoRGB24(buffer);
-      std::cout << "Converted " << buffer2->size << " bytes" << std::endl;
-      std::ofstream outfile2("test2.raw", std::ofstream::binary);
-      outfile2.write((char*) buffer2->mem, buffer2->size);
-      outfile2.close();
-      camera.freeFrame(buffer);
+      camera.FreeFrame(buffer);
     }
     camera.Stop();
   } catch (std::string& e) {

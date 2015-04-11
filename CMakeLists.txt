@@ -3,6 +3,9 @@ set(SOURCE_FILES
 	v4l2server.cpp
 )
 
+  FIND_PATH (LIBV4LCONVERT_INCLUDE_DIR libv4lconvert.h)
+  FIND_LIBRARY (LIBV4LCONVERT_LIBRARY NAMES v4lconvert)
+
 # Include headers from this paths
 include_directories(
 	${INTERFACES_CPP_DIR}
@@ -27,6 +30,7 @@ target_link_libraries(v4l2server
 	v4l2
 	JderobotInterfaces
 	${ZeroCIce_LIBRARIES}
+	${LIBV4LCONVERT_LIBRARY}
 )
 
 # Generate documentation if doxygen was found

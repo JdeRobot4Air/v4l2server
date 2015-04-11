@@ -18,6 +18,16 @@ struct Buffer {
   size_t size;
 };
 
+struct Format {
+  std::string format;
+  int width;
+  int height;
+};
+
+std::string FormatInt2String(int format);
+int FormatString2Int(std::string format);
+int FormatString2Int2(std::string format);
+
 /** Camera control class */
 class Camera {
  private:
@@ -50,10 +60,12 @@ class Camera {
   void Start() throw (std::string);
   void Stop() throw (std::string);
   bool is_active();
-  Buffer* waitFrame(int timeout) throw (std::string);
-  void freeFrame(Buffer* frame) throw (std::string);
-  Buffer* YUYVtoRGB24(Buffer* frame);
+  Buffer* WaitFrame(int timeout) throw (std::string);
+  void FreeFrame(Buffer* frame) throw (std::string);
+  Buffer* YuyvToRgb24(Buffer* frame);
   ~Camera();
+  void getFormat(Format *format) throw (std::string);
+
 };
 
 } /* namespace */
