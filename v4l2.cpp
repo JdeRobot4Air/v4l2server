@@ -36,10 +36,6 @@ std::string FormatInt2String(int format) {
 }
 
 int FormatString2Int(std::string format) {
-  return V4L2_PIX_FMT_RGB24;
-}
-
-int FormatString2Int2(std::string format) {
   int output;
   if (format.size() != 4) {
     return 0;
