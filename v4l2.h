@@ -14,8 +14,10 @@
 namespace v4l2 {
 
 struct Buffer {
+  int index;
   void* mem;
   size_t size;
+  size_t used;
 };
 
 struct Format {
@@ -63,8 +65,10 @@ class Camera {
   void FreeFrame(Buffer* frame) throw (std::string);
   Buffer* YuyvToRgb24(Buffer* frame);
   ~Camera();
-  void getFormat(Format *format) throw (std::string);
-
+  void EnqueueBuffer(int index) throw (std::string);
+  int DequeueBuffer() throw (std::string);
+  bool EnumFormats(Format* format, int index) throw (std::string);
+  bool EnumResolutions(Format* format, int index) throw (std::string);
 };
 
 } /* namespace */
