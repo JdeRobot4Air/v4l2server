@@ -26,7 +26,6 @@ struct Format {
 
 std::string FormatInt2String(int format);
 int FormatString2Int(std::string format);
-int FormatString2Int2(std::string format);
 
 /** Camera control class */
 class Camera {
@@ -35,10 +34,8 @@ class Camera {
   std::string device_;
   /** Camera file descriptor */
   int camera_fd_;
-  /** Image width */
-  int width_;
-  /** Image height */
-  int height_;
+  /** Image format */
+  Format* format_;
   /** Frames per second requested */
   int fps_;
   /** Camera active (device opened and configured) */
@@ -53,8 +50,10 @@ class Camera {
   Buffer current_frame;
 
   int xioctl(int request, void* argument);
-  Camera(std::string device, int width, int height, int fps);
-  Camera(std::string device, int width, int height);
+  void GetFormat(Format *format) throw (std::string);
+  void SetFormat(Format *format) throw (std::string);
+  Camera(std::string device, Format* format, int fps);
+  Camera(std::string device, Format* format);
   void Open() throw (std::string);
   void Close();
   void Start() throw (std::string);

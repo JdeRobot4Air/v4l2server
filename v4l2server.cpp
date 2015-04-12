@@ -21,24 +21,30 @@ class FrameCallback {
 };
 
 int main(int argc, char** argv) {
-  v4l2::Camera camera = v4l2::Camera("/dev/video0", 320, 240, 10);
-  v4l2::Buffer* buffer = NULL, * buffer2;
+  v4l2::Format* format = new v4l2::Format();
+  v4l2::Buffer* buffer = NULL, *buffer2;
+  format->width = 320;
+  format->height = 240;
+  format->format = "YUYV";
+  v4l2::Camera camera = v4l2::Camera("/dev/video0", format, 10);
   try {
     camera.Open();
     std::cout << "Get ready! -> " << camera.is_active() << std::endl;
+    camera.GetFormat(format);
+    std::cout << "Initial format: " << format->format << " (" << format->width
+              << "x" << format->height << ")" << std::endl;
     camera.Start();
     std::cout << "Camera started! -> " << camera.is_active() << std::endl;
     for (int i = 0; i < 20; i++) {
-      buffer = camera.WaitFrame(500000);
+      buffer = camera.WaitFrame(1500000);
       if (buffer == NULL) {
         std::cout << "NULL" << std::endl;
         return 1;
       }
-      std::cout << v4l2::FormatString2Int("YUYV") << " - " << v4l2::FormatString2Int2("YUYV") << " - " << v4l2::FormatInt2String(859981650) << std::endl;
       std::cout << "Received " << buffer->size << " bytes" << std::endl;
-      std::ofstream outfile("test.raw", std::ofstream::binary);
+/*      std::ofstream outfile("test.raw", std::ofstream::binary);
       outfile.write((char*) buffer->mem, buffer->size);
-      outfile.close();
+      outfile.close();*/
       camera.FreeFrame(buffer);
     }
     camera.Stop();

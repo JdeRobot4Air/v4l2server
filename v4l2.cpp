@@ -25,13 +25,13 @@ namespace v4l2 {
 
 std::string FormatInt2String(int format) {
   std::string output;
-  output += (char)(format & 0xff);
+  output += (char) (format & 0xff);
   format >>= 8;
-  output += (char)(format & 0xff);
+  output += (char) (format & 0xff);
   format >>= 8;
-  output += (char)(format & 0xff);
+  output += (char) (format & 0xff);
   format >>= 8;
-  output += (char)(format & 0xff);
+  output += (char) (format & 0xff);
   return output;
 }
 
@@ -47,22 +47,36 @@ int FormatString2Int(std::string format) {
   return output;
 }
 
-void Camera::getFormat(Format *format) throw (std::string) {
+void Camera::GetFormat(Format *format) throw (std::string) {
+  /* Get image format */
+  struct v4l2_format* image_format = new v4l2_format();
+  image_format->type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+  if (int rc = xioctl(VIDIOC_G_FMT, image_format) == -1) {
+    std::ostringstream output_message;
+    output_message << "Error in VIDIOC_G_FMT (rc=" << rc << ", errno="
+                   << errno << ", " << strerror(errno) << ")";
+    throw std::string(output_message.str());
+  }
+  format->format = FormatInt2String(image_format->fmt.pix.pixelformat);
+  format->width = image_format->fmt.pix.width;
+  format->height = image_format->fmt.pix.height;
+}
+
+void Camera::SetFormat(Format *format) throw (std::string) {
   /* Set image format */
-  struct v4l2_format image_format;
-  memset(&image_format, 1, sizeof(image_format));
-  image_format.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-  image_format.fmt.pix.width = width_;
-  image_format.fmt.pix.height = height_;
-  image_format.fmt.pix.pixelformat = V4L2_PIX_FMT_YUYV;  //V4L2_PIX_FMT_RGB24;  //V4L2_PIX_FMT_YUYV;
-  image_format.fmt.pix.field = V4L2_FIELD_NONE;
-  if (xioctl(VIDIOC_S_FMT, &image_format) == -1) {
+  struct v4l2_format* image_format = new v4l2_format();
+  int int_format = FormatString2Int(format->format);
+  image_format->type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+  image_format->fmt.pix.width = format->width;
+  image_format->fmt.pix.height = format->height;
+  image_format->fmt.pix.pixelformat = int_format;
+  image_format->fmt.pix.field = V4L2_FIELD_NONE;
+  if (xioctl(VIDIOC_S_FMT, image_format) == -1) {
     throw std::string("Error in VIDIOC_S_FMT");
   }
-  if (image_format.fmt.pix.pixelformat != V4L2_PIX_FMT_YUYV) {
+  if (image_format->fmt.pix.pixelformat != int_format) {
     throw std::string("Camera doesn't support requested mode");
   }
-
 }
 
 /**
@@ -89,8 +103,8 @@ int Camera::xioctl(int request, void* argument) {
  * @param width image width
  * @param height image height
  */
-Camera::Camera(std::string device, int width, int height) {
-  Camera(device, width, height, 10);
+Camera::Camera(std::string device, Format* format) {
+  Camera(device, format);
 }
 
 /**
@@ -102,13 +116,16 @@ Camera::Camera(std::string device, int width, int height) {
  * @param height image height
  * @param fps requested frame rate in frames per second
  */
-Camera::Camera(std::string device, int width, int height, int fps) {
+Camera::Camera(std::string device, Format* format, int fps) {
   /* Camera not active yet */
   active_ = false;
   /* Save camera data */
   device_ = device;
-  width_ = width;
-  height_ = height;
+  /* Save camera format */
+  format_ = new Format;
+  format_->width = format->width;
+  format_->height = format->height;
+  format_->format = format->format;
   fps_ = fps;
   camera_fd_ = -1;
 }
@@ -156,20 +173,7 @@ void Camera::Open() throw (std::string) {
     throw std::string(output_message.str());
   }
   /* Set image format */
-  struct v4l2_format image_format;
-  memset(&image_format, 1, sizeof(image_format));
-  image_format.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-  image_format.fmt.pix.width = width_;
-  image_format.fmt.pix.height = height_;
-  image_format.fmt.pix.pixelformat = V4L2_PIX_FMT_YUYV;  //V4L2_PIX_FMT_RGB24;  //V4L2_PIX_FMT_YUYV;
-  image_format.fmt.pix.field = V4L2_FIELD_NONE;
-  if (xioctl(VIDIOC_S_FMT, &image_format) == -1) {
-    throw std::string("Error in VIDIOC_S_FMT");
-  }
-  if (image_format.fmt.pix.pixelformat != V4L2_PIX_FMT_YUYV) {
-    throw std::string("Camera doesn't support requested mode");
-  }
-
+  SetFormat(format_);
   /* Set streaming parameters */
   struct v4l2_streamparm streaming_params;
   streaming_params.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
@@ -338,14 +342,15 @@ void Camera::FreeFrame(Buffer* frame) throw (std::string) {
 
 Buffer* Camera::YuyvToRgb24(Buffer* frame) {
   Buffer* output;
-  unsigned char* rgb_image = new unsigned char[width_ * height_ * 3];
+  unsigned char* rgb_image = new unsigned char[format_->width * format_->height
+      * 3];
   unsigned char* yuyv_image = (unsigned char*) frame->mem;
 
   int i, j;
   int y, cr, cb;
   double r, g, b;
 
-  for (i = 0, j = 0; i < width_ * height_ * 3; i += 6, j += 4) {
+  for (i = 0, j = 0; i < format_->width * format_->height * 3; i += 6, j += 4) {
     //first pixel
     y = yuyv_image[j];
     cb = yuyv_image[j + 1];
