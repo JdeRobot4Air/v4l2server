@@ -128,6 +128,7 @@ Camera::Camera(std::string device, Format* format, int fps) {
   format_->format = format->format;
   fps_ = fps;
   camera_fd_ = -1;
+  num_buffers_ = 4;
 }
 
 /**
@@ -254,20 +255,37 @@ bool Camera::is_active() {
   return active_ && (camera_fd_ != -1);
 }
 
+void Camera::EnqueueBuffer(int index) throw (std::string) {
+  struct v4l2_buffer* buffer = new v4l2_buffer();
+  buffer->type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+  buffer->memory = V4L2_MEMORY_MMAP;
+  buffer->index = index;
+  if (xioctl(VIDIOC_QBUF, buffer) == -1) {
+    throw std::string("(EnqueueBuffer) Error in VIDIOC_QBUF");
+  }
+}
+
+int Camera::DequeueBuffer() throw (std::string) {
+  struct v4l2_buffer* buffer = new v4l2_buffer();
+  buffer->type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+  buffer->memory = V4L2_MEMORY_MMAP;
+  if (xioctl(VIDIOC_DQBUF, &buffer) == -1) {
+    std::ostringstream output_message;
+    output_message << "(DequeueBuffer) Error reading device " << device_
+                   << ": [" << errno << "] " << strerror(errno);
+    throw std::string(output_message.str());
+  }
+  if (buffer->index >= num_buffers_) {
+    throw std::string("(DequeueBuffer) mmap index returned out of range");
+  }
+}
+
 void Camera::Start() throw (std::string) {
   unsigned int i;
   enum v4l2_buf_type type;
-  /* Clear and enqueue all buffers */
-  num_buffers_ = 4;
+  /* Enqueue all buffers */
   for (i = 0; i < (unsigned int) num_buffers_; ++i) {
-    struct v4l2_buffer buffer;
-    memset(&buffer, 1, sizeof(buffer));
-    buffer.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-    buffer.memory = V4L2_MEMORY_MMAP;
-    buffer.index = i;
-    if (xioctl(VIDIOC_QBUF, &buffer) == -1) {
-      throw std::string("Error in VIDIOC_QBUF");
-    }
+    EnqueueBuffer(i);
   }
   /* Final and more important step: start streaming images */
   type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
@@ -416,4 +434,45 @@ Camera::~Camera() {
   Close();
 }
 
+bool Camera::EnumFormats(Format* format, int index) throw (std::string) {
+  struct v4l2_fmtdesc* format_description = new v4l2_fmtdesc();
+  format_description->index = index;
+  format_description->type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+  if (int rc = xioctl(VIDIOC_ENUM_FMT, format_description) != 0) {
+    if (rc == -1) {
+      std::ostringstream output_message;
+      output_message << "Error in VIDIOC_ENUM_FMT (rc=" << rc << ", errno="
+                     << errno << ", " << strerror(errno) << ")";
+      throw std::string(output_message.str());
+    }
+    return false;
+  }
+  format->format = FormatInt2String(format_description->pixelformat);
+  return true;
+}
+
+bool Camera::EnumResolutions(Format* format, int index) throw (std::string) {
+  struct v4l2_frmsizeenum* format_size = new v4l2_frmsizeenum();
+  format_size->index = index;
+  format_size->pixel_format = FormatString2Int(format->format);
+  if (int rc = xioctl(VIDIOC_ENUM_FRAMESIZES, format_size) != 0) {
+    if (rc == -1) {
+      std::ostringstream output_message;
+      output_message << "Error in VIDIOC_ENUM_FRAMESIZES (rc=" << rc
+                     << ", errno=" << errno << ", " << strerror(errno) << ")";
+      throw std::string(output_message.str());
+    }
+    return false;
+  }
+  if (format_size->type == V4L2_FRMSIZE_TYPE_DISCRETE) {
+    format->width = format_size->discrete.width;
+    format->height = format_size->discrete.height;
+  } else if (format_size->type == V4L2_FRMSIZE_TYPE_STEPWISE) {
+    format->width = format_size->stepwise.max_width;
+    format->height = format_size->stepwise.max_height;
+  } else {
+    return false;
+  }
+  return true;
+}
 }
