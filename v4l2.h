@@ -24,6 +24,7 @@ struct Format {
   std::string format;
   int width;
   int height;
+  int fps;
 };
 
 std::string FormatInt2String(int format);
@@ -38,8 +39,6 @@ class Camera {
   int camera_fd_;
   /** Image format */
   Format* format_;
-  /** Frames per second requested */
-  int fps_;
   /** Camera active (device opened and configured) */
   bool active_;
   /** Memory mapped image buffers */
@@ -54,6 +53,8 @@ class Camera {
   int xioctl(int request, void* argument);
   void GetFormat(Format *format) throw (std::string);
   void SetFormat(Format *format) throw (std::string);
+  void SetFps(Format *format) throw (std::string);
+  void GetFps(Format *format) throw (std::string);
   Camera(std::string device, Format* format, int fps);
   Camera(std::string device, Format* format);
   void Open() throw (std::string);
@@ -69,6 +70,7 @@ class Camera {
   int DequeueBuffer() throw (std::string);
   bool EnumFormats(Format* format, int index) throw (std::string);
   bool EnumResolutions(Format* format, int index) throw (std::string);
+  bool EnumFps(Format* format, int index) throw (std::string);
 };
 
 } /* namespace */

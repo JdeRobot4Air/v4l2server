@@ -126,7 +126,7 @@ Camera::Camera(std::string device, Format* format, int fps) {
   format_->width = format->width;
   format_->height = format->height;
   format_->format = format->format;
-  fps_ = fps;
+  format_->fps = fps;
   camera_fd_ = -1;
   num_buffers_ = 4;
 }
@@ -176,15 +176,8 @@ void Camera::Open() throw (std::string) {
   /* Set image format */
   SetFormat(format_);
   /* Set streaming parameters */
-  struct v4l2_streamparm streaming_params;
-  streaming_params.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-  streaming_params.parm.capture.timeperframe.numerator = 1;
-  streaming_params.parm.capture.timeperframe.denominator = fps_;
-  streaming_params.parm.output.timeperframe.numerator = 1;
-  streaming_params.parm.output.timeperframe.denominator = fps_;
-  if (xioctl(VIDIOC_S_PARM, &streaming_params) == -1) {
-    throw std::string("Error in VIDIOC_S_PARM");
-  }
+  SetFps(format_);
+  std::cout << "FPS: " << format_->fps << std::endl;
   /* Request buffers to video capture streaming */
   struct v4l2_requestbuffers request_buffers;
   memset(&request_buffers, 1, sizeof(request_buffers));
@@ -475,4 +468,55 @@ bool Camera::EnumResolutions(Format* format, int index) throw (std::string) {
   }
   return true;
 }
+
+bool Camera::EnumFps(Format* format, int index) throw (std::string) {
+  struct v4l2_frmivalenum* image_fps = new v4l2_frmivalenum();
+  image_fps->index = index;
+  image_fps->width = format->width;
+  image_fps->height = format->height;
+  image_fps->pixel_format = FormatString2Int(format->format);
+  if (int rc = xioctl(VIDIOC_ENUM_FRAMEINTERVALS, image_fps) != 0) {
+    if (rc == -1) {
+      std::ostringstream output_message;
+      output_message << "Error in VIDIOC_ENUM_FRAMEINTERVALS (rc=" << rc
+                     << ", errno=" << errno << ", " << strerror(errno) << ")";
+      throw std::string(output_message.str());
+    }
+    return false;
+  }
+  if (image_fps->type == V4L2_FRMIVAL_TYPE_DISCRETE) {
+    format->fps = image_fps->discrete.denominator;
+  } else if (image_fps->type == V4L2_FRMSIZE_TYPE_STEPWISE
+      || image_fps->type == V4L2_FRMSIZE_TYPE_CONTINUOUS) {
+    format->fps = image_fps->stepwise.max.denominator;
+  } else {
+    return false;
+  }
+  return true;
+}
+
+void Camera::SetFps(Format *format) throw (std::string) {
+  /* Set streaming parameters */
+  struct v4l2_streamparm* streaming_params = new v4l2_streamparm();
+  streaming_params->type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+  streaming_params->parm.capture.timeperframe.numerator = 1;
+  streaming_params->parm.capture.timeperframe.denominator = format->fps;
+  streaming_params->parm.output.timeperframe.numerator = 1;
+  streaming_params->parm.output.timeperframe.denominator = format->fps;
+  if (xioctl(VIDIOC_S_PARM, streaming_params) == -1) {
+    throw std::string("Error in VIDIOC_S_PARM");
+  }
+  format->fps = streaming_params->parm.capture.timeperframe.denominator;
+}
+
+void Camera::GetFps(Format *format) throw (std::string) {
+  /* Get streaming parameters */
+  struct v4l2_streamparm* streaming_params = new v4l2_streamparm();
+  streaming_params->type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+  if (xioctl(VIDIOC_S_PARM, streaming_params) == -1) {
+    throw std::string("Error in VIDIOC_S_PARM");
+  }
+  format->fps = streaming_params->parm.capture.timeperframe.denominator;
+}
+
 }
