@@ -40,7 +40,7 @@ class Camera {
   /** Image format */
   Format* format_;
   /** Camera active (device opened and configured) */
-  bool active_;
+  bool initialized_;
   /** Memory mapped image buffers */
   Buffer* buffers_;
   int num_buffers_;
@@ -59,6 +59,7 @@ class Camera {
   Camera(std::string device, Format* format);
   void Open() throw (std::string);
   void Close();
+  void Initialize() throw (std::string);
   void Start() throw (std::string);
   void Stop() throw (std::string);
   bool is_active();

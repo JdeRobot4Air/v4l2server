@@ -56,10 +56,12 @@ int main(int argc, char** argv) {
     /* Let's get actual format, resolution and frame rate */
     camera->GetFormat(format);
     camera->GetFps(format);
-    std::cout << "Previrous image format: " << format->format << " "
+    std::cout << "Previous image format: " << format->format << " "
               << format->width << "x" << format->height << " @" << format->fps
               << std::endl;
 
+    std::cout << "Initializing camera device" << std::endl;
+    camera->Initialize();
     /* Desired image format */
     format->width = 320;
     format->height = 240;

@@ -118,7 +118,7 @@ Camera::Camera(std::string device, Format* format) {
  */
 Camera::Camera(std::string device, Format* format, int fps) {
   /* Camera not active yet */
-  active_ = false;
+  initialized_ = false;
   /* Save camera data */
   device_ = device;
   /* Save camera format */
@@ -173,6 +173,14 @@ void Camera::Open() throw (std::string) {
     output_message << device_ << " doesn't support video streaming";
     throw std::string(output_message.str());
   }
+}
+
+/**
+ * Initialize camera device and throws an exception in case of error
+ */
+void Camera::Initialize() throw (std::string) {
+  /* Common output string in case of error */
+  std::ostringstream output_message;
   /* Set image format */
   SetFormat(format_);
   /* Set streaming parameters */
@@ -221,13 +229,15 @@ void Camera::Open() throw (std::string) {
       throw std::string("Error in mmap (MAP_FAILED)");
     }
   }
+  /* Camera now ready to start streaming */
+  initialized_ = true;
 }
 
 /**
  * Close camera device
  */
 void Camera::Close() {
-  active_ = false;
+  initialized_ = false;
   for (int i = 0; i < (unsigned int) num_buffers_; ++i) {
     if (munmap(buffers_[i].mem, buffers_[i].size) == -1) {
       throw std::string("Error in munmap");
@@ -245,7 +255,7 @@ void Camera::Close() {
  * @return the current status of camera device
  */
 bool Camera::is_active() {
-  return active_ && (camera_fd_ != -1);
+  return initialized_ && (camera_fd_ != -1);
 }
 
 void Camera::EnqueueBuffer(int index) throw (std::string) {
@@ -271,9 +281,14 @@ int Camera::DequeueBuffer() throw (std::string) {
   if (buffer->index >= num_buffers_) {
     throw std::string("(DequeueBuffer) mmap index returned out of range");
   }
+  //////////////////////////////////////////////
+  return 0;
 }
 
 void Camera::Start() throw (std::string) {
+  if (!initialized_) {
+    throw std::string("Camera not initialized");
+  }
   unsigned int i;
   enum v4l2_buf_type type;
   /* Enqueue all buffers */
