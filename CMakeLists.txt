@@ -1,6 +1,7 @@
 # Source code files
 set(SOURCE_FILES
 	v4l2server.cpp
+	imagei.cpp
 )
 
   FIND_PATH (LIBV4LCONVERT_INCLUDE_DIR libv4lconvert.h)
@@ -29,6 +30,7 @@ add_executable(v4l2server
 target_link_libraries(v4l2server
 	v4l2
 	JderobotInterfaces
+	${CMAKE_THREAD_LIBS_INIT}
 	${ZeroCIce_LIBRARIES}
 	${LIBV4LCONVERT_LIBRARY}
 )
